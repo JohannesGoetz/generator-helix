@@ -8,13 +8,17 @@ const path = require('path');
 const chalk = require('chalk');
 const util = require('../app/utility');
 
+// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
+var usingCustomSerializationConfig = false;
+
 module.exports = class extends yeoman {
+	
 	constructor(args, opts) {
 		super(args, opts);
 		this.argument('ProjectName', { type: String, required: false, desc: 'Name of the project' });
 		this.argument('VendorPrefix', { type: String, required: false, desc: 'Vendor prefix used in the creation of project structure' });
 	}
-
+	
 	init() {
 		this.log(yosay('Lets generate that project!'));
 		this.templatedata = {};
@@ -179,11 +183,52 @@ module.exports = class extends yeoman {
 		});
 	}
 
-	_copySolutionSpecificItems(){
-		this.fs.copyTpl(
-			this.destinationPath('helix-template/**/*'), 
-			this.destinationPath(this.settings.ProjectPath),
-			this.templatedata);
+	_copySolutionSpecificItems(path = "", adjustedPath = ""){
+		var sourcePath = this.destinationPath('helix-template/' + path);
+		var files = fs.readdirSync(sourcePath, {withFileTypes: true});
+		files.forEach(file => {
+			
+			var destinationPath = this.settings.ProjectPath + '/' + adjustedPath;
+			// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
+			if(file.toLowerCase().endsWith('serialization.config'))
+			{
+				usingCustomSerializationConfig = true;
+			}
+
+			// call this function recursively for child directories
+			var stats = fs.statSync(sourcePath + file);
+			if(stats.isDirectory())
+			{
+				
+				var childPath = path + file + '/';
+				var adjustedChildPath = path;
+				
+				// remame Layer folder to the selected layer
+				if(file == 'Layer')
+				{
+					destinationPath = destinationPath + '/' + this.layer;
+					adjustedChildPath += this.layer +'/';
+				}
+				else
+				{
+					destinationPath = destinationPath + '/' + file;
+					adjustedChildPath += file +'/';
+				}
+				
+				fs.mkdirSync(this.destinationPath(destinationPath));
+				this._copySolutionSpecificItems(childPath, adjustedChildPath);
+			}
+			
+			// copy template
+			else{				
+				this.fs.copyTpl(
+					sourcePath + file, 
+					destinationPath + file,
+					this.templatedata);
+				}
+		});
+
+
 	}
 
 	_renameProjectFile() {
@@ -207,28 +252,34 @@ module.exports = class extends yeoman {
 		else{
 			mkdir.sync(path.join(this.settings.sourceFolder, this.layer, this.settings.ProjectName, 'serialization' ));
 		}
-		const serializationDestinationFile = path.join(
-			this.settings.ProjectPath,
-			'App_Config/Include',
-			this.settings.LayerPrefixedProjectName,
-			'serialization.config'
-		);
 
-		this.fs.copyTpl(this.templatePath('_serialization.config'), this.destinationPath(serializationDestinationFile), this.templatedata);
+		// dont copy _serialization.config if there is a project specific one
+		if(!usingCustomSerializationConfig)
+		{
+
+			const serializationDestinationFile = path.join(
+				this.settings.ProjectPath,
+				'App_Config/Include',
+				this.settings.LayerPrefixedProjectName,
+				'serialization.config'
+				);
+				
+				this.fs.copyTpl(this.templatePath('_serialization.config'), this.destinationPath(serializationDestinationFile), this.templatedata);
+		}
 	}
 
 	writing() {
 		this.settings.ProjectPath = path.join(this.settings.sourceFolder, this.layer, this.modulegroup, this.settings.ProjectName, 'code' );
 		this._copyProjectItems();
-
-		if(this.settings.serialization) {
-			this._copySerializationItems();
-		}
-
+		
 		if(fs.existsSync(this.destinationPath('helix-template'))) {
 			this._copySolutionSpecificItems();
 		}
-
+				
+		if(this.settings.serialization) {
+			this._copySerializationItems();
+		}
+		
 		const files = fs.readdirSync(this.destinationPath());
 		const SolutionFile = files.find(file => file.toUpperCase().endsWith(".SLN"));
 		const scriptParameters = '-SolutionFile \'' + this.destinationPath(SolutionFile) + '\' -Name ' + this.settings.LayerPrefixedProjectName + ' -Type ' + this.layer + ' -ProjectPath \'' + this.settings.ProjectPath + '\'' + ' -SolutionFolderName ' + this.templatedata.projectname;
