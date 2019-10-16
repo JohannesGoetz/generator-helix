@@ -189,10 +189,19 @@ module.exports = class extends yeoman {
 		files.forEach(file => {
 			
 			var destinationPath = this.settings.ProjectPath + '/' + adjustedPath;
-			// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
+			// if current file is the serialization.config rename it according to settings
 			if(file.toLowerCase().endsWith('serialization.config'))
 			{
-				usingCustomSerializationConfig = true;
+				this.fs.copyTpl(
+					sourcePath + file, 
+					destinationPath + this.layer + "." +  this.settings.ProjectName + "." + file,
+					this.templatedata);
+
+					// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
+					usingCustomSerializationConfig = true;
+					
+					return;
+					
 			}
 
 			// call this function recursively for child directories
