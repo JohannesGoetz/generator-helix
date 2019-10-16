@@ -212,16 +212,25 @@ module.exports = class extends yeoman {
 				var childPath = path + file + '/';
 				var adjustedChildPath = path;
 				
-				// remame Layer folder to the selected layer
-				if(file == 'Layer')
+				// remame setting dependent folders
+				switch(file)
 				{
-					destinationPath = destinationPath + '/' + this.layer;
-					adjustedChildPath += this.layer +'/';
-				}
-				else
-				{
-					destinationPath = destinationPath + '/' + file;
-					adjustedChildPath += file +'/';
+					case 'Layer':
+						destinationPath = destinationPath + '/' + this.layer;
+						adjustedChildPath += this.layer +'/';
+						break;
+					case 'ProjectName':
+						destinationPath = destinationPath + '/' + this.settings.ProjectName;
+						adjustedChildPath += this.settings.ProjectName +'/';
+						break;
+					case 'VendorPrefix':
+						destinationPath = destinationPath + '/' + this.settings.VendorPrefix;
+						adjustedChildPath += this.settings.VendorPrefix +'/';
+						break;
+					default:
+						destinationPath = destinationPath + '/' + file;
+						adjustedChildPath += file +'/';
+
 				}
 				
 				fs.mkdirSync(this.destinationPath(destinationPath));
