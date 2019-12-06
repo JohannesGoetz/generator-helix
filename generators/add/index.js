@@ -189,19 +189,16 @@ module.exports = class extends yeoman {
 		files.forEach(file => {
 			
 			var destinationPath = this.settings.ProjectPath + '/' + adjustedPath;
-			// if current file is the serialization.config rename it according to settings
+			this.fs.copyTpl(
+				sourcePath + file, 
+				destinationPath + this.layer + "." +  this.settings.ProjectName + "." + file,
+				this.templatedata);
+				
+			// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
 			if(file.toLowerCase().endsWith('serialization.config'))
 			{
-				this.fs.copyTpl(
-					sourcePath + file, 
-					destinationPath + this.layer + "." +  this.settings.ProjectName + "." + file,
-					this.templatedata);
-
-					// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
-					usingCustomSerializationConfig = true;
-					
-					return;
-					
+				usingCustomSerializationConfig = true;				
+				//return;					
 			}
 
 			// call this function recursively for child directories
@@ -210,30 +207,11 @@ module.exports = class extends yeoman {
 			{
 				
 				var childPath = path + file + '/';
-				var adjustedChildPath = path;
-				
-				// remame setting dependent folders
-				switch(file)
+				var adjustedChildPath = path + '/' + this._replaceTokensInFileName(file);
+				if (!fs.existsSync(this.destinationPath(destinationPath)))
 				{
-					case 'Layer':
-						destinationPath = destinationPath + '/' + this.layer;
-						adjustedChildPath += this.layer +'/';
-						break;
-					case 'ProjectName':
-						destinationPath = destinationPath + '/' + this.settings.ProjectName;
-						adjustedChildPath += this.settings.ProjectName +'/';
-						break;
-					case 'VendorPrefix':
-						destinationPath = destinationPath + '/' + this.settings.VendorPrefix;
-						adjustedChildPath += this.settings.VendorPrefix +'/';
-						break;
-					default:
-						destinationPath = destinationPath + '/' + file;
-						adjustedChildPath += file +'/';
-
+					fs.mkdirSync(this.destinationPath(destinationPath));
 				}
-				
-				fs.mkdirSync(this.destinationPath(destinationPath));
 				this._copySolutionSpecificItems(childPath, adjustedChildPath);
 			}
 			
@@ -241,12 +219,20 @@ module.exports = class extends yeoman {
 			else{				
 				this.fs.copyTpl(
 					sourcePath + file, 
-					destinationPath + file,
+					destinationPath + this._replaceTokensInFileName(file),
 					this.templatedata);
 				}
 		});
 
 
+	}
+
+	// replace all occurences of "_Layer" "_Module" "_Vendor" in the provided string with the current values
+	_replaceTokensInFileName(filename = ""){
+		filename.replace("_Layer", this.layer);
+		filename.replace("_Module", this.settings.ProjectName);
+		filename.replace("_Vendor", this.settings.VendorPrefix);
+		return filename;
 	}
 
 	_renameProjectFile() {
@@ -271,7 +257,7 @@ module.exports = class extends yeoman {
 			mkdir.sync(path.join(this.settings.sourceFolder, this.layer, this.settings.ProjectName, 'serialization' ));
 		}
 
-		// dont copy _serialization.config if there is a project specific one
+		// only copy _serialization.config if there is no project specific one
 		if(!usingCustomSerializationConfig)
 		{
 
