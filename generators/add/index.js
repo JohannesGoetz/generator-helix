@@ -8,7 +8,7 @@ const path = require('path');
 const chalk = require('chalk');
 const util = require('../app/utility');
 
-// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
+// remember not to copy files in _copySerializationItems() if a project specific one has been found
 var usingCustomSerializationConfig = false;
 
 module.exports = class extends yeoman {
@@ -189,25 +189,14 @@ module.exports = class extends yeoman {
 		files.forEach(file => {
 			
 			var destinationPath = this.settings.ProjectPath + '/' + adjustedPath;
-			this.fs.copyTpl(
-				sourcePath + file, 
-				destinationPath + this.layer + "." +  this.settings.ProjectName + "." + file,
-				this.templatedata);
-				
-			// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
-			if(file.toLowerCase().endsWith('serialization.config'))
-			{
-				usingCustomSerializationConfig = true;				
-				//return;					
-			}
-
+		
 			// call this function recursively for child directories
 			var stats = fs.statSync(sourcePath + file);
 			if(stats.isDirectory())
 			{
 				
 				var childPath = path + file + '/';
-				var adjustedChildPath = path + '/' + this._replaceTokensInFileName(file);
+				var adjustedChildPath = path + this._replaceTokensInFileName(file);
 				if (!fs.existsSync(this.destinationPath(destinationPath)))
 				{
 					fs.mkdirSync(this.destinationPath(destinationPath));
@@ -217,9 +206,22 @@ module.exports = class extends yeoman {
 			
 			// copy template
 			else{				
+
+				// only copy serialization.config if serialization is enabled
+				if(file.toLowerCase().endsWith('serialization.config'))
+				{
+					if (!this.settings.serialization)
+					{
+						return;					
+					}
+
+					// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
+					usingCustomSerializationConfig = true;				
+				}
+
 				this.fs.copyTpl(
 					sourcePath + file, 
-					destinationPath + this._replaceTokensInFileName(file),
+					destinationPath + '/' + this._replaceTokensInFileName(file),
 					this.templatedata);
 				}
 		});
@@ -229,9 +231,9 @@ module.exports = class extends yeoman {
 
 	// replace all occurences of "_Layer" "_Module" "_Vendor" in the provided string with the current values
 	_replaceTokensInFileName(filename = ""){
-		filename.replace("_Layer", this.layer);
-		filename.replace("_Module", this.settings.ProjectName);
-		filename.replace("_Vendor", this.settings.VendorPrefix);
+		filename = filename.replace("_Layer", this.layer);
+		filename = filename.replace("_Module", this.settings.ProjectName);
+		filename = filename.replace("_Vendor", this.settings.VendorPrefix);
 		return filename;
 	}
 
@@ -274,8 +276,8 @@ module.exports = class extends yeoman {
 
 	writing() {
 		this.settings.ProjectPath = path.join(this.settings.sourceFolder, this.layer, this.modulegroup, this.settings.ProjectName, 'code' );
-		this._copyProjectItems();
-		
+		this._copyProjectItems();		
+
 		if(fs.existsSync(this.destinationPath('helix-template'))) {
 			this._copySolutionSpecificItems();
 		}
