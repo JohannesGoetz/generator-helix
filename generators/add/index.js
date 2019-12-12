@@ -207,6 +207,31 @@ module.exports = class extends yeoman {
 			// copy template
 			else{				
 
+				// only copy the correct project file there are seperate project files for serialization enabled and disabled
+				if(file.toLowerCase().endsWith('.csproj'))
+				{
+					// serialization is disabled and the current file is the .csproj with serialization enabled
+					if(!this.settings.serialization && file.toLowerCase().endsWith('.unicorn.csproj'))
+					{
+						return;
+					}
+					// serialization is enabled and the current file is the .csproj with serialization disabled
+					if(this.settings.serialization && !file.toLowerCase().endsWith('.unicorn.csproj'))
+					{
+						return;
+					}
+					// serialization is enabled and the current file is the .csproj with serialization enabled 
+					if(this.settings.serialization && file.toLowerCase().endsWith('.unicorn.csproj'))
+					{	
+						// copy template but remove the unicorn suffix									
+						this.fs.copyTpl(
+							sourcePath + file, 
+							destinationPath + '/' + this._replaceTokensInFileName(file.replace("unicorn.", "")),
+							this.templatedata);
+						return;
+					} 
+				}
+
 				// only copy serialization.config if serialization is enabled
 				if(file.toLowerCase().endsWith('serialization.config'))
 				{
