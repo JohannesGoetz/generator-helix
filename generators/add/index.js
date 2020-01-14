@@ -210,16 +210,12 @@ module.exports = class extends yeoman {
 				// only copy the correct project file there are seperate project files for serialization enabled and disabled
 				if(file.toLowerCase().endsWith('.csproj'))
 				{
-					// serialization is disabled and the current file is the .csproj with serialization enabled
-					if(!this.settings.serialization && file.toLowerCase().endsWith('.unicorn.csproj'))
+					// serialization is disabled and the current file is the .csproj with serialization enabled or serialization is enabled and the current file is the .csproj with serialization disabled
+					if(!this.settings.serialization && file.toLowerCase().endsWith('.unicorn.csproj') || this.settings.serialization && !file.toLowerCase().endsWith('.unicorn.csproj'))
 					{
 						return;
 					}
-					// serialization is enabled and the current file is the .csproj with serialization disabled
-					if(this.settings.serialization && !file.toLowerCase().endsWith('.unicorn.csproj'))
-					{
-						return;
-					}
+
 					// serialization is enabled and the current file is the .csproj with serialization enabled 
 					if(this.settings.serialization && file.toLowerCase().endsWith('.unicorn.csproj'))
 					{	
@@ -233,14 +229,14 @@ module.exports = class extends yeoman {
 				}
 
 				// only copy serialization.config if serialization is enabled
+				if(file.toLowerCase().endsWith('serialization.config') && !this.settings.serialization)
+				{
+					return;
+				}
+
+				// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
 				if(file.toLowerCase().endsWith('serialization.config'))
 				{
-					if (!this.settings.serialization)
-					{
-						return;					
-					}
-
-					// remember not to copy serialization file in _copySerializationItems() if a project specific one has been found
 					usingCustomSerializationConfig = true;				
 				}
 
