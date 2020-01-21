@@ -45,7 +45,8 @@ module.exports = class extends yeoman {
 			message: 'Should buildconfigurations be generated (should be deactivated if your .csproj templates already have build configurations)?',
 			default : true
 		},
-		{			type:'input',
+		{
+			type:'input',
 			name:'sourceFolder',
 			message:'Source code folder name',
 			default: 'src',
@@ -108,7 +109,7 @@ module.exports = class extends yeoman {
 			message: 'Enter optional Module Group '
 		}];
 
-		this.prompt(questions).then((answers) => { 
+		this.prompt(questions).then((answers) => {
 			this.modulegroup = answers.modulegroup ? answers.modulegroup : '';
 			done();
 		});
@@ -144,7 +145,7 @@ module.exports = class extends yeoman {
 
 	_copyProjectItems() {
 		mkdir.sync(this.settings.ProjectPath);
-		if(this.settings.serialization) {
+		if(this._serializationIsEnabled()) {
 			this.fs.copyTpl(
 				this.templatePath('_project.unicorn.csproj'),
 				this.destinationPath(
@@ -188,6 +189,7 @@ module.exports = class extends yeoman {
 		});
 	}
 
+	// copy all templates from the helix-template folder and replace tokens in filepaths
 	_copySolutionSpecificItems(path = "", adjustedPath = ""){
 		var sourcePath = this.destinationPath('helix-template/' + path);
 		var files = fs.readdirSync(sourcePath, {withFileTypes: true});
@@ -210,31 +212,32 @@ module.exports = class extends yeoman {
 			}
 			
 			// copy template
-			else{				
+			else {				
 
-				// only copy the correct project file there are seperate project files for serialization enabled and disabled
-				if(file.toLowerCase().endsWith('.csproj'))
+				// copy the project file which does contain serialization configurations (according to file ending)
+				if(file.toLowerCase().endsWith('.unicorn.csproj'))
 				{
-					// serialization is disabled and the current file is the .csproj with serialization enabled or serialization is enabled and the current file is the .csproj with serialization disabled
-					if(!this.settings.serialization && file.toLowerCase().endsWith('.unicorn.csproj') || this.settings.serialization && !file.toLowerCase().endsWith('.unicorn.csproj'))
+					// serialization is enabled and the current file is the .csproj with serialization enabled
+					if(this._serializationIsEnabled())
 					{
-						return;
-					}
-
-					// serialization is enabled and the current file is the .csproj with serialization enabled 
-					if(this.settings.serialization && file.toLowerCase().endsWith('.unicorn.csproj'))
-					{	
-						// copy template but remove the unicorn suffix									
+						// copy template but remove the unicorn suffix
 						this.fs.copyTpl(
-							sourcePath + file, 
+							sourcePath + file,
 							destinationPath + '/' + this._replaceTokensInFileName(file.replace("unicorn.", "")),
 							this.templatedata);
-						return;
-					} 
-				}
+					}
+					return;
+				}				
+				
+        // if serialization is enabled, do not copy the project file which
+        // does not contain any serialization configurations (according to file ending)
+        if (file.toLowerCase().endsWith('.csproj') && this._serializationIsEnabled())
+        {
+          return;
+        }
 
 				// only copy serialization.config if serialization is enabled
-				if(file.toLowerCase().endsWith('serialization.config') && !this.settings.serialization)
+				if(file.toLowerCase().endsWith('serialization.config') && !this._serializationIsEnabled())
 				{
 					return;
 				}
@@ -253,6 +256,11 @@ module.exports = class extends yeoman {
 		});
 
 
+	}
+
+  // Indicates if searialization is enabled or not
+  _serializationIsEnabled() {
+    return this.settings.serialization;
 	}
 
 	// replace all occurences of "_Layer" "_Module" "_Vendor" in the provided string with the current values
@@ -308,7 +316,7 @@ module.exports = class extends yeoman {
 			this._copySolutionSpecificItems();
 		}
 				
-		if(this.settings.serialization) {
+		if(this._serializationIsEnabled()) {
 			this._copySerializationItems();
 		}
 		
