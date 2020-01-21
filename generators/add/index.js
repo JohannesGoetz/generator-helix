@@ -40,7 +40,12 @@ module.exports = class extends yeoman {
 			default : true
 		},
 		{
-			type:'input',
+			type: 'confirm',
+			name: 'generateBuildConfigs',
+			message: 'Should buildconfigurations be generated (should be deactivated if your .csproj templates already have build configurations)?',
+			default : true
+		},
+		{			type:'input',
 			name:'sourceFolder',
 			message:'Source code folder name',
 			default: 'src',
@@ -309,7 +314,7 @@ module.exports = class extends yeoman {
 		
 		const files = fs.readdirSync(this.destinationPath());
 		const SolutionFile = files.find(file => file.toUpperCase().endsWith(".SLN"));
-		const scriptParameters = '-SolutionFile \'' + this.destinationPath(SolutionFile) + '\' -Name ' + this.settings.LayerPrefixedProjectName + ' -Type ' + this.layer + ' -ProjectPath \'' + this.settings.ProjectPath + '\'' + ' -SolutionFolderName ' + this.templatedata.projectname;
+		const scriptParameters = '-SolutionFile \'' + this.destinationPath(SolutionFile) + '\' -Name ' + this.settings.LayerPrefixedProjectName + ' -Type ' + this.layer + ' -ProjectPath \'' + this.settings.ProjectPath + '\'' + ' -SolutionFolderName ' + this.templatedata.projectname + '\'' + ' -GenerateBuildConfigs ' + this.settings.generateBuildConfigs;
 
 		var pathToAddProjectScript = path.join(this._sourceRoot, '../../../powershell/add-project.ps1');
 		powershell.runAsync(pathToAddProjectScript, scriptParameters);

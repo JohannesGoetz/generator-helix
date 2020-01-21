@@ -9,7 +9,9 @@ param(
 [Parameter(Mandatory=$true)]
 [string]$ProjectPath,
 [Parameter(Mandatory=$true)]
-[string]$SolutionFolderName)
+[string]$SolutionFolderName,
+[Parameter(Mandatory=$true)]
+[bool]$GenerateBuildConfigs)
 
 . $PSScriptRoot\Add-Line.ps1
 . $PSScriptRoot\Get-SolutionConfigurations.ps1
@@ -36,7 +38,9 @@ $addProjectSolutionFolder = @("Project(`"{2150E333-8FDC-42A3-9474-1A3956D46DE8}`
 $addNestProjectSection = @("`t`t{$projectGuid} = {$projectFolderGuid}")
 $addNestProjectSolutionFolderSection = @("`t`t{$projectFolderGuid} = $solutionFolderId")
 
-#Add-BuildConfigurations -ProjectPath $projectPath -Configurations $configurations                
+if ($GenerateBuildConfigs) {  
+  Add-BuildConfigurations -ProjectPath $projectPath -Configurations $configurations                
+}               
 Add-Line -FileName $SolutionFile -Pattern $ProjectSection -LinesToAdd $addProjectSection
 Add-Line -FileName $SolutionFile -Pattern $ProjectSection -LinesToAdd $addProjectSolutionFolder
 Add-Line -FileName $SolutionFile -Pattern $NestedProjectSection -LinesToAdd $addNestProjectSection
