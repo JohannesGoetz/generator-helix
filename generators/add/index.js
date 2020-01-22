@@ -228,7 +228,7 @@ module.exports = class extends yeoman {
 					}
 					return;
 				}				
-				
+
         // if serialization is enabled, do not copy the project file which
         // does not contain any serialization configurations (according to file ending)
         if (file.toLowerCase().endsWith('.csproj') && this._serializationIsEnabled())
@@ -271,20 +271,28 @@ module.exports = class extends yeoman {
 		return filename;
 	}
 
-	_renameProjectFile() {
-		fs.renameSync(
-			this.destinationPath(
-				path.join(this.settings.ProjectPath, '_project.csproj')
-			),
-			this.destinationPath(
-				path.join(
-					this.settings.ProjectPath,
-					this.settings.LayerPrefixedProjectName + '.csproj'
-				)
-			)
-		);
-	}
+	_renameProjectFile() {		
+		// select correct .csproj file to rename depending on whether or not serialization is enabled
+		var filename = '_project.csproj';
+		if (this._serializationIsEnabled())
+		{
+			filename = '_project.unicorn.csproj'
+		}
 
+		if(fs.existsSync(this.destinationPath('helix-template/' + filename))){
+			fs.renameSync(
+				this.destinationPath(
+					path.join(this.settings.ProjectPath, '_project.csproj')
+				),
+				this.destinationPath(
+					path.join(
+						this.settings.ProjectPath,
+						this.settings.LayerPrefixedProjectName + '.csproj'
+					)
+				)
+			);
+		}
+	}
 	_copySerializationItems() {
 		if(this.modulegroup){
 			mkdir.sync(path.join(this.settings.sourceFolder, this.layer, this.modulegroup, this.settings.ProjectName, 'serialization' ));
@@ -322,15 +330,13 @@ module.exports = class extends yeoman {
 		
 		const files = fs.readdirSync(this.destinationPath());
 		const SolutionFile = files.find(file => file.toUpperCase().endsWith(".SLN"));
-		const scriptParameters = '-SolutionFile \'' + this.destinationPath(SolutionFile) + '\' -Name ' + this.settings.LayerPrefixedProjectName + ' -Type ' + this.layer + ' -ProjectPath \'' + this.settings.ProjectPath + '\'' + ' -SolutionFolderName ' + this.templatedata.projectname + '\'' + ' -GenerateBuildConfigs ' + this.settings.generateBuildConfigs;
+		const scriptParameters = '-SolutionFile \'' + this.destinationPath(SolutionFile) + '\' -Name ' + this.settings.LayerPrefixedProjectName + ' -Type ' + this.layer + ' -ProjectPath \'' + this.settings.ProjectPath + '\'' + ' -SolutionFolderName \'' + this.templatedata.projectname + '\'' + ' -GenerateBuildConfigs ' + this.settings.generateBuildConfigs;
 
 		var pathToAddProjectScript = path.join(this._sourceRoot, '../../../powershell/add-project.ps1');
 		powershell.runAsync(pathToAddProjectScript, scriptParameters);
 	}
 
 	end() {
-		if(fs.existsSync(this.destinationPath('helix-template/_project.csproj'))){
-			this._renameProjectFile();
-		}
+		this._renameProjectFile();
 	}
 };
