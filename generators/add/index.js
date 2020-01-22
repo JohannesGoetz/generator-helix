@@ -42,7 +42,7 @@ module.exports = class extends yeoman {
 		{
 			type: 'confirm',
 			name: 'generateBuildConfigs',
-			message: 'Should buildconfigurations be generated (should be deactivated if your .csproj templates already have build configurations)?',
+			message: 'Should build configurations be generated (should be deactivated if your .csproj templates already have build configurations)?',
 			default : true
 		},
 		{
