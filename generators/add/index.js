@@ -42,7 +42,7 @@ module.exports = class extends yeoman {
 		{
 			type: 'confirm',
 			name: 'generateBuildConfigs',
-			message: 'Should build configurations be generated (should be deactivated if your .csproj templates already have build configurations)?',
+			message: 'Should build configurations be generated (should be deactivated if your .csproj templates already provide build configurations)?',
 			default : true
 		},
 		{
@@ -273,11 +273,7 @@ module.exports = class extends yeoman {
 
 	_renameProjectFile() {		
 		// select correct .csproj file to rename depending on whether or not serialization is enabled
-		var filename = '_project.csproj';
-		if (this._serializationIsEnabled())
-		{
-			filename = '_project.unicorn.csproj'
-		}
+		var filename = (this._serializationIsEnabled()) ? '_project.unicorn.csproj' : '_project.csproj';
 
 		if(fs.existsSync(this.destinationPath('helix-template/' + filename))){
 			fs.renameSync(
@@ -330,7 +326,8 @@ module.exports = class extends yeoman {
 		
 		const files = fs.readdirSync(this.destinationPath());
 		const SolutionFile = files.find(file => file.toUpperCase().endsWith(".SLN"));
-		const scriptParameters = '-SolutionFile \'' + this.destinationPath(SolutionFile) + '\' -Name ' + this.settings.LayerPrefixedProjectName + ' -Type ' + this.layer + ' -ProjectPath \'' + this.settings.ProjectPath + '\'' + ' -SolutionFolderName \'' + this.templatedata.projectname + '\'' + ' -GenerateBuildConfigs ' + this.settings.generateBuildConfigs;
+		var generateBuildConfigs = this.settings.generateBuildConfigs.toLowerCase == 'true';
+		const scriptParameters = '-SolutionFile \'' + this.destinationPath(SolutionFile) + '\' -Name ' + this.settings.LayerPrefixedProjectName + ' -Type ' + this.layer + ' -ProjectPath \'' + this.settings.ProjectPath + '\'' + ' -SolutionFolderName \'' + this.templatedata.projectname + '\'' + ' -GenerateBuildConfigs ' + `$${this.settings.generateBuildConfigs}`;
 
 		var pathToAddProjectScript = path.join(this._sourceRoot, '../../../powershell/add-project.ps1');
 		powershell.runAsync(pathToAddProjectScript, scriptParameters);
